@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:product_app/models/product_provider.dart';
+import 'package:product_app/screens/cart.dart';
 import 'package:product_app/widgets/category_item.dart';
 import 'package:product_app/widgets/product_item.dart';
 import 'package:provider/provider.dart';
@@ -13,73 +16,167 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  bool _isLoading = true;
+  bool isLoading = true;
+  List<Map<String, dynamic>> products = [];
+  late TextEditingController searchController;
+  List<Map<String, dynamic>> filteredProducts = [];
+  List<Map<String, dynamic>> filteredCategoryProducts = [];
+  String selectedCategory = '';
+  int cartItemCount = 0;
+  List<Map<String, dynamic>> cartItems = [];
+
   @override
   void initState() {
     super.initState();
-    fetchData(); // Call an asynchronous method without using await directly
+    searchController = TextEditingController();
+    fetchData();
+  }
+
+  void filterProducts(String query) {
+    setState(() {
+      filteredProducts = products
+          .where((product) =>
+              product['name'].toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    });
+  }
+
+  void filterByCategory(String category) {
+    setState(() {
+      selectedCategory = category;
+      filteredCategoryProducts = products
+          .where((product) => product['category']
+              .toLowerCase()
+              .contains(category.toLowerCase()))
+          .toList();
+      print(filteredCategoryProducts);
+    });
+  }
+
+  void navigateToCartPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CartPage(cartItems: cartItems),
+      ),
+    );
   }
 
   Future<void> fetchData() async {
     final response =
-        await http.get(Uri.parse('http://172.20.10.9/connection.php'));
+        await http.get(Uri.parse('http://172.20.10.9/server/get.php'));
     if (response.statusCode == 200) {
-      // Handle the response from the server
-      print(response.body);
+      List<dynamic> parsedJson = json.decode(response.body);
+
+      parsedJson.forEach((product) {
+        Map<String, dynamic> productData = {
+          'name': product['name'],
+          'price': product['price'],
+          'imageUrl': product['imagUrl'],
+          'description': product['description'],
+          'id': product['id'],
+          'category': product['category'],
+        };
+        products.add(productData);
+      });
     } else {
-      // Handle errors
-      print('Request failed with status: ${response.statusCode}');
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Request failed with status: ${response.statusCode}'),
+        ),
+      );
     }
 
-    // Update the state when data fetching is complete
     setState(() {
-      _isLoading = false;
+      isLoading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    String selectedCategory = '';
-
-    List<Map<String, dynamic>> products = [
-      // Add your product details here
-      {
-        'name': 'Product 1',
-        'price': '20',
-        'imageUrl': 'assets/ww.png', // Replace with actual image URLs
-      },
-      {
-        'name': 'Product 1',
-        'price': '20',
-        'imageUrl': 'assets/ww.png', // Replace with actual image URLs
-      },
-      // Add more product details as needed
-      {
-        'name': 'Product 1',
-        'price': '20',
-        'imageUrl': 'assets/ww.png', // Replace with actual image URLs
-      },
-    ];
-
     return ChangeNotifierProvider(
       create: (context) => ProductProvider(),
       child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          title: TextField(
+            controller: searchController,
+            onChanged: (value) {
+              filterProducts(value);
+            },
+            decoration: InputDecoration(
+              hintText: 'Search Products...',
+              border: InputBorder.none,
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  searchController.clear();
+                  filterProducts('');
+                },
+              ),
+            ),
+          ),
+        ),
         body: SafeArea(
           child: SingleChildScrollView(
             child: Center(
               child: Column(
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.symmetric(
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
                       vertical: 12,
+                      horizontal: 20,
                     ),
-                    child: Text(
-                      "Blooms",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 25,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Blooms",
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 25,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        Stack(
+                          children: [
+                            IconButton(
+                              onPressed: () => navigateToCartPage(),
+                              icon: Icon(
+                                Icons.shop,
+                                size: 40,
+                              ),
+                            ),
+                            Positioned(
+                              right: 0,
+                              top: -2,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 7,
+                                  minHeight: 7,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    cartItemCount.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 7,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                   Padding(
@@ -165,17 +262,48 @@ class _HomePageState extends State<HomePage> {
                         Row(
                           children: [
                             CategoryItem(
-                              title: 'Category 1',
+                              title: 'luxury',
                               onSelect: (value) {
-                                selectedCategory = value;
-                                print('Selected Category: $selectedCategory');
+                                filterByCategory('luxury');
+                              },
+                              onDeselect: () {
+                                filterByCategory("");
                               },
                             ),
                             CategoryItem(
-                              title: 'Category 2',
+                              title: 'cars',
                               onSelect: (value) {
-                                selectedCategory = value;
-                                print('Selected Category: $selectedCategory');
+                                filterByCategory('cars');
+                              },
+                              onDeselect: () {
+                                filterByCategory("");
+                              },
+                            ),
+                            CategoryItem(
+                              title: 'skin',
+                              onSelect: (value) {
+                                filterByCategory(value);
+                              },
+                              onDeselect: () {
+                                filterByCategory("");
+                              },
+                            ),
+                            CategoryItem(
+                              title: 'electronics',
+                              onSelect: (value) {
+                                filterByCategory(value);
+                              },
+                              onDeselect: () {
+                                filterByCategory("");
+                              },
+                            ),
+                            CategoryItem(
+                              title: 'children',
+                              onSelect: (value) {
+                                filterByCategory('children');
+                              },
+                              onDeselect: () {
+                                filterByCategory("");
                               },
                             ),
                           ],
@@ -186,32 +314,59 @@ class _HomePageState extends State<HomePage> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: List.generate(
-                            (products.length / 2).ceil(),
+                            filteredCategoryProducts.isNotEmpty
+                                ? filteredCategoryProducts.length
+                                : (searchController.text.isNotEmpty)
+                                    ? filteredProducts.length
+                                    : products.length.ceil(),
                             (index) => Row(
                               children: [
                                 Expanded(
                                   child: Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: ProductItem(
-                                      name: products[index * 2]['name'],
-                                      price: products[index * 2]['price'],
-                                      imageUrl: products[index * 2]['imageUrl'],
+                                      onAddToCart: () {
+                                        setState(() {
+                                          cartItemCount++;
+
+                                          cartItems.add(filteredCategoryProducts
+                                                  .isNotEmpty
+                                              ? filteredCategoryProducts[index]
+                                              : (searchController
+                                                      .text.isNotEmpty)
+                                                  ? filteredProducts[index]
+                                                  : products[index]);
+                                        });
+                                      },
+                                      name: filteredCategoryProducts.isNotEmpty
+                                          ? filteredCategoryProducts[index]
+                                              ['name']
+                                          : (searchController.text.isNotEmpty)
+                                              ? filteredProducts[index]['name']
+                                              : products[index]['name'],
+                                      price: filteredCategoryProducts.isNotEmpty
+                                          ? filteredCategoryProducts[index]
+                                              ['price']
+                                          : (searchController.text.isNotEmpty)
+                                              ? filteredProducts[index]['price']
+                                              : products[index]['price'],
+                                      imageUrl: filteredCategoryProducts
+                                              .isNotEmpty
+                                          ? filteredCategoryProducts[index]
+                                              ['imageUrl']
+                                          : (searchController.text.isNotEmpty)
+                                              ? filteredProducts[index]
+                                                  ['imageUrl']
+                                              : products[index]['imageUrl'],
+                                      description: filteredCategoryProducts
+                                              .isNotEmpty
+                                          ? filteredCategoryProducts[index]
+                                              ['description']
+                                          : (searchController.text.isNotEmpty)
+                                              ? filteredProducts[index]
+                                                  ['description']
+                                              : products[index]['description'],
                                     ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: (index * 2 + 1 < products.length)
-                                        ? ProductItem(
-                                            name: products[index * 2 + 1]
-                                                ['name'],
-                                            price: products[index * 2 + 1]
-                                                ['price'],
-                                            imageUrl: products[index * 2 + 1]
-                                                ['imageUrl'],
-                                          )
-                                        : const SizedBox(), // For cases where the number of products is odd
                                   ),
                                 ),
                               ],

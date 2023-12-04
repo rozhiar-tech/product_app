@@ -5,11 +5,15 @@ class ProductItem extends StatelessWidget {
   final String name;
   final String price;
   final String imageUrl;
+  final String description;
+  final Function()? onAddToCart;
 
   const ProductItem({
     required this.name,
     required this.price,
     required this.imageUrl,
+    required this.description,
+    this.onAddToCart,
   });
 
   @override
@@ -19,11 +23,12 @@ class ProductItem extends StatelessWidget {
         Navigator.push(
           context,
           PageRouteBuilder(
-            transitionDuration: Duration(milliseconds: 500),
+            transitionDuration: const Duration(milliseconds: 500),
             pageBuilder: (_, __, ___) => ProductDetailPage(
               name: name,
               price: price,
               imageUrl: imageUrl,
+              description: description,
             ),
             transitionsBuilder: (_, animation, __, child) {
               return SlideTransition(
@@ -57,7 +62,7 @@ class ProductItem extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius:
                         const BorderRadius.vertical(top: Radius.circular(12)),
-                    child: Image.asset(
+                    child: Image.network(
                       imageUrl,
                       fit: BoxFit.cover,
                     ),
@@ -98,9 +103,7 @@ class ProductItem extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
-                              onPressed: () {
-                                // Implement your 'Add' functionality here
-                              },
+                              onPressed: onAddToCart,
                               child: const Icon(Icons.add),
                             ),
                           ],
@@ -119,9 +122,7 @@ class ProductItem extends StatelessWidget {
                   Icons.favorite_border,
                   color: Colors.grey,
                 ),
-                onPressed: () {
-                  // Implement your favorite functionality here
-                },
+                onPressed: () {},
               ),
             ),
           ],

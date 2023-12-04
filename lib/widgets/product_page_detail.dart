@@ -4,11 +4,13 @@ class ProductDetailPage extends StatelessWidget {
   final String name;
   final String price;
   final String imageUrl;
+  final String description;
 
   const ProductDetailPage({
     required this.name,
     required this.price,
     required this.imageUrl,
+    required this.description,
   });
 
   @override
@@ -43,7 +45,7 @@ class ProductDetailPage extends StatelessWidget {
                   SizedBox(
                     height: 450,
                     width: double.infinity,
-                    child: Image.asset(
+                    child: Image.network(
                       imageUrl,
                       fit: BoxFit.cover,
                       height: 300, // Adjust the height as needed
@@ -70,9 +72,9 @@ class ProductDetailPage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Description: Add your description here...',
-                          style: TextStyle(fontSize: 16),
+                        Text(
+                          description,
+                          style: const TextStyle(fontSize: 16),
                         ),
                       ],
                     ),

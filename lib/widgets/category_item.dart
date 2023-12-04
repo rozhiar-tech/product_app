@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 class CategoryItem extends StatefulWidget {
   final String title;
   final Function(String) onSelect;
+  final Function()? onDeselect; // New property for onDeselect
 
   const CategoryItem({
     required this.title,
     required this.onSelect,
+    this.onDeselect, 
   });
 
   @override
@@ -23,7 +25,11 @@ class _CategoryItemState extends State<CategoryItem> {
         setState(() {
           _isSelected = !_isSelected;
         });
-        widget.onSelect(widget.title);
+        if (_isSelected) {
+          widget.onSelect(widget.title);
+        } else if (widget.onDeselect != null) {
+          widget.onDeselect!(); 
+        }
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),

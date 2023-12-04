@@ -1,8 +1,8 @@
 <?php
 // Database configuration
 $servername = "localhost"; // Replace with your server name
-$username = "root"; // Replace with your username
-$password = ""; // Replace with your password
+$username = "root"; // Replace with your database username
+$password = ""; // Replace with your database password
 $dbname = "products"; // Replace with your database name
 
 // Create connection
@@ -13,20 +13,20 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// If the connection is successful, you can perform operations on the database
-
-// Example query: Selecting data from a table
+// Fetch data from a table
 $sql = "SELECT * FROM product"; // Replace with your table name
 $result = $conn->query($sql);
 
 if ($result->num_rows > 0) {
-    // Output data of each row
+    $data = array();
     while ($row = $result->fetch_assoc()) {
-        echo "id: " . $row["id"] . " - Name: " . $row["name"] . "<br>";
-        // Replace "id" and "name" with your table column names
+        $data[] = $row;
     }
+    // Convert data to JSON and output
+    header('Content-Type: application/json');
+    echo json_encode($data);
 } else {
-    echo "0 results";
+    echo "No data found";
 }
 
 $conn->close();
